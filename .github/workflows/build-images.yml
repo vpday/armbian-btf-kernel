@@ -1,0 +1,115 @@
+# This is a basic workflow to help you get started with Actions
+
+name: build-images
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_repo_branch:
+        description: "Source branch. main/master/23.02.0-trunk.0256/..."
+        required: true
+        default: "main"
+
+jobs:
+  generate_release_info:
+#     runs-on: self-hosted
+    runs-on: ubuntu-22.04
+    outputs:
+      release_name: ${{ steps.generate_release_name.outputs.release_name }}
+    steps:
+      - id: generate_release_name
+        run: |
+          echo "release_name=images-$(date -u -I)" >> "$GITHUB_OUTPUT"
+
+  build:
+#     runs-on: self-hosted
+    runs-on: ubuntu-22.04
+    needs: generate_release_info
+    strategy:
+        matrix:
+          include:
+            - boardfamily: rockchip64
+              branch: current
+              representative: nanopi-r2s
+        fail-fast: false
+    env:
+      BOARD_FAMILY: ${{ matrix.boardfamily }}
+      BRANCH: ${{ matrix.branch }}
+      BOARD_NAME: ${{ matrix.representative }}
+
+    steps:
+      - name: cleanup #https://github.com/actions/checkout/issues/211
+        run: |
+          sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+
+      - uses: actions/checkout@v3
+        with:
+          repository: armbian/build
+          path: build
+          ref: ${{ github.event.inputs.build_repo_branch }}
+
+      - uses: actions/checkout@v3
+        with:
+          path: utils
+
+      - name: Build Kernel
+        run: |
+          # Copy helper files.
+          cp utils/* build/
+          cd build/
+
+          # Remove disabling DEBUG_INFO.
+          sed -i 's/run_kernel_make olddefconfig/run_kernel_make KCONFIG_ALLCONFIG=.config alldefconfig/g' lib/functions/compilation/kernel-config.sh
+          sed -i '/kernel_config_set_n DEBUG_INFO/d' lib/functions/compilation/armbian-kernel.sh
+
+          # Trip modulues debug info.
+          sed -i 's/run_kernel_make_long_running/run_kernel_make_long_running INSTALL_MOD_STRIP=1/g' lib/functions/compilation/kernel.sh
+
+          # Enable BTF.
+          sed -i '/CONFIG_DEBUG_INFO/d;/CONFIG_RING_BUFFER/d;/CONFIG_TRACING/d;/CONFIG_STACKTRACE/d;/CONFIG_NOP_TRACER/d;/CONFIG_BINARY_PRINTF/d;/CONFIG_EVENT_TRACING/d;/CONFIG_TRACE_CLOCK/d;/CONFIG_TASKS_RCU/d' config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
+          echo "CONFIG_DEBUG_INFO=y
+          CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y
+          CONFIG_DEBUG_INFO_COMPRESSED_ZLIB=y
+          CONFIG_DEBUG_INFO_BTF=y
+          CONFIG_KPROBE_EVENTS=y
+          CONFIG_BPF_EVENTS=y
+          CONFIG_RING_BUFFER=y
+          CONFIG_TRACING=y
+          CONFIG_STACKTRACE=y
+          CONFIG_NOP_TRACER=y
+          CONFIG_BINARY_PRINTF=y
+          CONFIG_EVENT_TRACING=y
+          CONFIG_TRACE_CLOCK=y
+          CONFIG_TASKS_RCU=y" >> config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
+
+          # Compile kernel.
+          ./compile.sh BOARD="$BOARD_NAME" BRANCH="$BRANCH" RELEASE=bullseye KERNEL_CONFIGURE=no BUILD_MINIMAL=yes BUILD_ONLY=default EXTERNAL_NEW="prebuilt" COMPRESS_OUTPUTIMAGE="sha,7z" SEVENZIP=yes EXTRAWIFI=no
+
+      - name: Target
+        run: |
+          cd build/output/
+          tar -cJvf ${BOARD_NAME}-${BRANCH}-bullseye-images-$(date -u -I).tar.xz ./images
+
+      - name: Extract Output
+        id: output
+        run: |
+          cd build/output/
+          fname=$(ls --format single-column ${BOARD_NAME}-${BRANCH}-bullseye-images-*.tar.xz | head -n 1)
+          fpath=$(realpath ${fname})
+          echo "FILE_DISPLAY_NAME=${fname}" >> $GITHUB_OUTPUT
+          echo "FILEPATH=${fpath}" >> $GITHUB_OUTPUT
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ steps.output.outputs.FILEPATH }}
+          asset_name: ${{ steps.output.outputs.FILE_DISPLAY_NAME }}
+          tag: ${{ needs.generate_release_info.outputs.release_name }}
+          overwrite: true
+
+      - name: Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.output.outputs.FILE_DISPLAY_NAME }}
+          path: ${{ steps.output.outputs.FILEPATH }}
