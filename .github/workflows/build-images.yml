@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       build_repo_branch:
-        description: "Source branch. main/master/23.02.0-trunk.0256/..."
+        description: "Source branch. v23.08"
         required: true
-        default: "main"
+        default: "v23.08"
 
 jobs:
   generate_release_info:
