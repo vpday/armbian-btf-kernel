@@ -65,6 +65,10 @@ jobs:
           # Trip modulues debug info.
           sed -i 's/run_kernel_make_long_running/run_kernel_make_long_running INSTALL_MOD_STRIP=1/g' lib/functions/compilation/kernel.sh
 
+          # Disable WIFI Device
+          sed -i 's/CONFIG_RK_WIFI_DEVICE_UWE5621=y/CONFIG_RK_WIFI_DEVICE_UWE5621=n/' config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
+          sed -i 's/CONFIG_RK_WIFI_DEVICE_UWE5622=y/CONFIG_RK_WIFI_DEVICE_UWE5622=n/' config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
+
           # Enable BTF.
           sed -i '/CONFIG_DEBUG_INFO/d;/CONFIG_RING_BUFFER/d;/CONFIG_TRACING/d;/CONFIG_STACKTRACE/d;/CONFIG_NOP_TRACER/d;/CONFIG_BINARY_PRINTF/d;/CONFIG_EVENT_TRACING/d;/CONFIG_TRACE_CLOCK/d;/CONFIG_TASKS_RCU/d' config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
           echo "CONFIG_DEBUG_INFO=y
