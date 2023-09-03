@@ -68,6 +68,9 @@ jobs:
           # Disable WIFI Device
           sed -i 's/CONFIG_RK_WIFI_DEVICE_UWE5621=y/CONFIG_RK_WIFI_DEVICE_UWE5621=n/' config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
           sed -i 's/CONFIG_RK_WIFI_DEVICE_UWE5622=y/CONFIG_RK_WIFI_DEVICE_UWE5622=n/' config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
+          mv patch/kernel/archive/rockchip64-6.1/wifi-4003-add-bcm43342-chip.patch patch/kernel/archive/rockchip64-6.1/wifi-4003-add-bcm43342-chip.patch.disabled
+          mv patch/kernel/archive/rockchip64-6.1/wifi-4003-ssv-6051-driver.patch patch/kernel/archive/rockchip64-6.1/wifi-4003-ssv-6051-driver.patch.disabled
+          mv patch/kernel/archive/rockchip64-6.1/wifi-4003-uwe5622-adjust-for-rockchip.patch patch/kernel/archive/rockchip64-6.1/wifi-4003-uwe5622-adjust-for-rockchip.patch.disabled
 
           # Enable BTF.
           sed -i '/CONFIG_DEBUG_INFO/d;/CONFIG_RING_BUFFER/d;/CONFIG_TRACING/d;/CONFIG_STACKTRACE/d;/CONFIG_NOP_TRACER/d;/CONFIG_BINARY_PRINTF/d;/CONFIG_EVENT_TRACING/d;/CONFIG_TRACE_CLOCK/d;/CONFIG_TASKS_RCU/d' config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
