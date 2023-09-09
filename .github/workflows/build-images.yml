@@ -73,7 +73,7 @@ jobs:
           mv patch/kernel/archive/rockchip64-6.1/wifi-4003-uwe5622-adjust-for-rockchip.patch patch/kernel/archive/rockchip64-6.1/wifi-4003-uwe5622-adjust-for-rockchip.patch.disabled
 
           # Enable BTF.
-          sed -i '/CONFIG_DEBUG_INFO/d;/CONFIG_RING_BUFFER/d;/CONFIG_TRACING/d;/CONFIG_STACKTRACE/d;/CONFIG_NOP_TRACER/d;/CONFIG_BINARY_PRINTF/d;/CONFIG_EVENT_TRACING/d;/CONFIG_TRACE_CLOCK/d;/CONFIG_TASKS_RCU/d' config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
+          sed -i '/CONFIG_DEBUG_INFO/d;/CONFIG_RING_BUFFER/d;/CONFIG_TRACING/d;/CONFIG_STACKTRACE/d;/CONFIG_NOP_TRACER/d;/CONFIG_BINARY_PRINTF/d;/CONFIG_EVENT_TRACING/d;/CONFIG_TRACE_CLOCK/d;/CONFIG_TASKS_RCU/d;/CONFIG_BPF_STREAM_PARSER/d' config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
           echo "CONFIG_DEBUG_INFO=y
           CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y
           CONFIG_DEBUG_INFO_COMPRESSED_ZLIB=y
@@ -87,7 +87,8 @@ jobs:
           CONFIG_BINARY_PRINTF=y
           CONFIG_EVENT_TRACING=y
           CONFIG_TRACE_CLOCK=y
-          CONFIG_TASKS_RCU=y" >> config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
+          CONFIG_TASKS_RCU=y
+          CONFIG_BPF_STREAM_PARSER=y" >> config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
 
           # Compile kernel.
           ./compile.sh BOARD="$BOARD_NAME" BRANCH="$BRANCH" RELEASE=bullseye KERNEL_CONFIGURE=no BUILD_MINIMAL=yes BUILD_ONLY=default EXTERNAL_NEW="prebuilt" COMPRESS_OUTPUTIMAGE="sha,7z" SEVENZIP=yes EXTRAWIFI=no
