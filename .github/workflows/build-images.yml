@@ -31,11 +31,13 @@ jobs:
             - boardfamily: rockchip64
               branch: current
               representative: nanopi-r2s
+              release: bookworm
         fail-fast: false
     env:
       BOARD_FAMILY: ${{ matrix.boardfamily }}
       BRANCH: ${{ matrix.branch }}
       BOARD_NAME: ${{ matrix.representative }}
+      RELEASE: ${{ matrix.release }}
 
     steps:
       - name: cleanup #https://github.com/actions/checkout/issues/211
@@ -61,6 +63,7 @@ jobs:
           # Remove disabling DEBUG_INFO.
           sed -i 's/run_kernel_make olddefconfig/run_kernel_make KCONFIG_ALLCONFIG=.config alldefconfig/g' lib/functions/compilation/kernel-config.sh
           sed -i '/kernel_config_set_n DEBUG_INFO/d' lib/functions/compilation/armbian-kernel.sh
+          sed -i '/kernel_config_set_n DEBUG_INFO_BTF/d' lib/functions/compilation/armbian-kernel.sh
 
           # Trip modulues debug info.
           sed -i 's/run_kernel_make_long_running/run_kernel_make_long_running INSTALL_MOD_STRIP=1/g' lib/functions/compilation/kernel.sh
@@ -91,18 +94,18 @@ jobs:
           CONFIG_BPF_STREAM_PARSER=y" >> config/kernel/linux-"$BOARD_FAMILY"-"$BRANCH".config
 
           # Compile kernel.
-          ./compile.sh BOARD="$BOARD_NAME" BRANCH="$BRANCH" RELEASE=bullseye KERNEL_CONFIGURE=no BUILD_MINIMAL=yes BUILD_ONLY=default EXTERNAL_NEW="prebuilt" COMPRESS_OUTPUTIMAGE="sha,7z" SEVENZIP=yes EXTRAWIFI=no
+          ./compile.sh BOARD="$BOARD_NAME" BRANCH="$BRANCH" RELEASE="$RELEASE" KERNEL_CONFIGURE=no BUILD_MINIMAL=yes BUILD_ONLY=default EXTERNAL_NEW="prebuilt" COMPRESS_OUTPUTIMAGE="sha,7z" SEVENZIP=yes EXTRAWIFI=no
 
       - name: Target
         run: |
           cd build/output/
-          tar -cJvf ${BOARD_NAME}-${BRANCH}-bullseye-images-$(date -u -I).tar.xz ./images
+          tar -cJvf ${BOARD_NAME}-${BRANCH}-${RELEASE}-images-$(date -u -I).tar.xz ./images
 
       - name: Extract Output
         id: output
         run: |
           cd build/output/
-          fname=$(ls --format single-column ${BOARD_NAME}-${BRANCH}-bullseye-images-*.tar.xz | head -n 1)
+          fname=$(ls --format single-column ${BOARD_NAME}-${BRANCH}-${RELEASE}-images-*.tar.xz | head -n 1)
           fpath=$(realpath ${fname})
           echo "FILE_DISPLAY_NAME=${fname}" >> $GITHUB_OUTPUT
           echo "FILEPATH=${fpath}" >> $GITHUB_OUTPUT
